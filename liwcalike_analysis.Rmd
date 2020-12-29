@@ -1,0 +1,117 @@
+---
+title: "LIWC"
+author: "Ignacio Ojea"
+date: "21 December 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup
+
+Load required packages (install first if necessary):
+
+```{r cars}
+require(readtext)
+# require(LIWClike)
+library("quanteda.dictionaries")
+require(quanteda)
+require(dplyr)
+require(tidytext)
+```
+
+## Read into R and transform into a corpus:
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+covidtweetsfull <- readtext("~/Dropbox/covidtweets/full/*")
+covidtweetspre <- readtext("~/Dropbox/covidtweets/pre/*")
+covidtweetspost <- readtext("~/Dropbox/covidtweets/post/*")
+covidtweetsfull_corpus <- corpus(covidtweetsfull)
+covidtweetspre_corpus <- corpus(covidtweetspre)
+covidtweetspost_corpus <- corpus(covidtweetspost)
+```
+
+## Tokenize the corpus, remove punctuation:
+
+```{r}
+dfmat_covidtweetsfull <- dfm(covidtweetsfull_corpus, stem = FALSE, remove_punct = TRUE)
+dfmat_covidtweetspre <- dfm(covidtweetspre_corpus, stem = FALSE, remove_punct = TRUE)
+dfmat_covidtweetspost <- dfm(covidtweetspost_corpus, stem = FALSE, remove_punct = TRUE)
+```
+
+## Hierarchical Clustering
+
+Hierarchical clustering to establish the pairwise similarity of all corpora, then plot the results as a dendrogram:
+
+```{r}
+tstat_dist <- textstat_dist(dfm_weight(dfmat_covidtweetsfull, scheme = "prop"))
+covid_cluster <- hclust(as.dist(tstat_dist))
+covid_cluster$labels <- docnames(dfmat_covidtweetsfull)
+plot(covid_cluster, xlab = "", sub = "",
+     main = "Euclidean Distance on Normalized Token Frequency")
+ 
+tstat_dist <- textstat_dist(dfm_weight(dfmat_covidtweetspre, scheme = "prop"))
+covid_cluster <- hclust(as.dist(tstat_dist))
+covid_cluster$labels <- docnames(dfmat_covidtweetspre)
+plot(covid_cluster, xlab = "", sub = "",
+     main = NULL)
+ 
+tstat_dist <- textstat_dist(dfm_weight(dfmat_covidtweetspost, scheme = "prop"))
+covid_cluster <- hclust(as.dist(tstat_dist))
+covid_cluster$labels <- docnames(dfmat_covidtweetspost)
+plot(covid_cluster, xlab = "", sub = "",
+     main = NULL)
+```
+
+## MFT
+
+Pass through Moral Foundations Theory dictionary via liwcalike:
+
+```{r}
+mft <- dictionary(file = "mft.dic")
+LIWCanalysismft <- liwcalike(covidtweets_corpus, mft)
+LIWCanalysismft
+write.csv(LIWCanalysismft, file = "covid_mft.csv")
+```
+
+## MAC
+
+Pass through morality-as-cooperation virtue and vice dictionaries:
+
+```{r}
+macdvirtue <- dictionary(file = "macdvirtue.dic")
+LIWCanalysisvirtue <- liwcalike(covidtweets_corpus, macdvirtue)
+LIWCanalysisvirtue
+write.csv(LIWCanalysisvirtue, file = "covid_macdvirtue.csv")
+
+macdvice <- dictionary(file = "macdvice.dic")
+LIWCanalysisvice <- liwcalike(covidtweets_corpus, macdvice)
+LIWCanalysisvice
+write.csv(LIWCanalysisvice, file = "covid_macdvice.csv")
+```
+
+
+## Basic LIWC
+
+```{r}
+basicliwc <- dictionary(file = "liwcdict.dic")
+LIWCanalysisbasic <- liwcalike(covidtweets_corpus, basicliwc)
+LIWCanalysisbasic
+write.csv(LIWCanalysisbasic, file = "covid_liwc.csv")
+```
+
+```{r}
+covidmoralspre <- read.csv("covidmoralspre.csv")
+covidmoralspost <- read.csv("covidmoralspost.csv")
+covid_label <- covidmoralspre$docname
+covidmoralspre_df <- covidmoralspre[,2:18]
+covidmoralspost_df <- covidmoralspost[,2:18]
+covidmoralspre_df_sc <- as.data.frame(scale(covidmoralspre_df))
+covidmoralspost_df_sc <- as.data.frame(scale(covidmoralspost_df))
+dist_matpre <- dist(covidmoralspre_df_sc, method = "euclidean")
+dist_matpost <- dist(covidmoralspost_df_sc, method = "euclidean")
+```
